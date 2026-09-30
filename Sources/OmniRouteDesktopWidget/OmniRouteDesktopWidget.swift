@@ -15,7 +15,20 @@ struct UsageEntry: TimelineEntry, Sendable {
 
 struct OmniRouteConfigurationIntent: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "OmniRoute"
-    static let description = IntentDescription("Display OmniRoute usage and provider quotas.")
+    static let description = IntentDescription("Connect this widget to an OmniRoute server.")
+
+    @Parameter(
+        title: "OmniRoute URL",
+        description: "Server root, for example http://localhost:20128",
+        default: "http://localhost:20128"
+    )
+    var baseURL: String
+
+    @Parameter(
+        title: "API key",
+        description: "OmniRoute API key with Usage Command enabled"
+    )
+    var apiKey: String?
 }
 
 struct UsageTimelineProvider: AppIntentTimelineProvider {
@@ -32,24 +45,24 @@ struct UsageTimelineProvider: AppIntentTimelineProvider {
         if context.isPreview {
             return placeholder(in: context)
         }
-        return await loadEntry()
+        return await loadEntry(configuration: configuration)
     }
 
     func timeline(
         for configuration: OmniRouteConfigurationIntent,
         in context: Context
     ) async -> Timeline<UsageEntry> {
-        let entry = await loadEntry()
+        let entry = await loadEntry(configuration: configuration)
         let refresh = Calendar.current.date(byAdding: .minute, value: 15, to: .now)
             ?? .now.addingTimeInterval(15 * 60)
         return Timeline(entries: [entry], policy: .after(refresh))
     }
 
-    private func loadEntry() async -> UsageEntry {
-        let baseURL = OmniRouteSharedConfiguration.loadBaseURL()
-        let apiKey = OmniRouteSharedConfiguration.loadAPIKey()
+    private func loadEntry(configuration: OmniRouteConfigurationIntent) async -> UsageEntry {
+        let baseURL = configuration.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let apiKey = (configuration.apiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard !baseURL.isEmpty, !apiKey.isEmpty else {
             return UsageEntry(date: .now, state: .notConfigured)
         }
 
@@ -113,7 +126,6 @@ struct OmniRouteDesktopWidget: Widget {
         ) { entry in
             OmniRouteWidgetView(entry: entry)
                 .containerBackground(.background, for: .widget)
-                .widgetURL(URL(string: "omniroute-widget://settings"))
         }
         .configurationDisplayName("OmniRoute")
         .description("Compact OmniRoute provider quota and API-key usage.")
@@ -139,9 +151,9 @@ private struct OmniRouteWidgetView: View {
             UsageDashboard(usage: usage, updatedAt: entry.date, family: family)
         case .notConfigured:
             WidgetMessage(
-                symbol: "key",
+                symbol: "slider.horizontal.3",
                 title: "Configure OmniRoute",
-                message: "Open the OmniRoute app and add the server URL and API key."
+                message: "Right-click the widget, choose Edit Widget, then enter the server URL and API key."
             )
         case .failed(let message):
             WidgetMessage(
@@ -173,7 +185,6 @@ private struct UsageDashboard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 8 : 9) {
             header
-
             Divider()
 
             HStack {
@@ -181,9 +192,7 @@ private struct UsageDashboard: View {
                     .font(.system(size: 9, weight: .semibold))
                     .tracking(1.1)
                     .foregroundStyle(.secondary)
-
                 Spacer()
-
                 Text("% left")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.tertiary)
@@ -248,7 +257,6 @@ private struct UsageDashboard: View {
             HStack {
                 Text("API key this week")
                     .foregroundStyle(.secondary)
-
                 Spacer()
 
                 if let limit = personal.weeklyLimitUsd {
@@ -428,10 +436,6 @@ private struct WidgetMessage: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             Spacer()
-
-            Text("Open OmniRoute to configure")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
         }
         .padding(14)
     }

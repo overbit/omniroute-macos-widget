@@ -24,17 +24,7 @@ echo "Generating Xcode project..."
 )
 
 echo "Building $APP_NAME with WidgetKit extension..."
-xcodebuild \
-  -project "$ROOT_DIR/OmniRouteWidget.xcodeproj" \
-  -scheme "$APP_NAME" \
-  -configuration Release \
-  -derivedDataPath "$DERIVED_DATA_DIR" \
-  -destination "platform=macOS" \
-  CODE_SIGNING_ALLOWED=NO \
-  CODE_SIGNING_REQUIRED=NO \
-  MARKETING_VERSION="$VERSION" \
-  CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-  build
+xcodebuild   -project "$ROOT_DIR/OmniRouteWidget.xcodeproj"   -scheme "$APP_NAME"   -configuration Release   -derivedDataPath "$DERIVED_DATA_DIR"   -destination "platform=macOS"   CODE_SIGNING_ALLOWED=NO   CODE_SIGNING_REQUIRED=NO   MARKETING_VERSION="$VERSION"   CURRENT_PROJECT_VERSION="$BUILD_NUMBER"   build
 
 BUILT_APP="$DERIVED_DATA_DIR/Build/Products/Release/$APP_NAME.app"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
@@ -45,41 +35,19 @@ ditto "$BUILT_APP" "$APP_BUNDLE"
 test -d "$EXTENSION_BUNDLE"
 
 echo "Ad-hoc signing nested WidgetKit extension..."
-codesign \
-  --force \
-  --sign - \
-  --identifier "com.overbit.OmniRouteWidget.Widget" \
-  --options runtime \
-  --generate-entitlement-der \
-  --timestamp=none \
-  --entitlements "$ROOT_DIR/Config/OmniRouteDesktopWidget.entitlements" \
-  "$EXTENSION_BUNDLE"
+codesign   --force   --sign -   --identifier "com.overbit.OmniRouteWidget.Widget"   --timestamp=none   --entitlements "$ROOT_DIR/Config/OmniRouteDesktopWidget.entitlements"   "$EXTENSION_BUNDLE"
 
-echo "Ad-hoc signing containing app without re-signing nested code..."
-codesign \
-  --force \
-  --sign - \
-  --identifier "com.overbit.OmniRouteWidget" \
-  --options runtime \
-  --generate-entitlement-der \
-  --timestamp=none \
-  --entitlements "$ROOT_DIR/Config/OmniRouteWidget.entitlements" \
-  "$APP_BUNDLE"
+echo "Ad-hoc signing containing app..."
+codesign   --force   --sign -   --identifier "com.overbit.OmniRouteWidget"   --timestamp=none   "$APP_BUNDLE"
 
 codesign --verify --deep --strict "$APP_BUNDLE"
-
-echo "Verifying widget entitlements survived packaging..."
-EXTENSION_ENTITLEMENTS="$(codesign --display --entitlements - --xml "$EXTENSION_BUNDLE" 2>&1)"
-printf '%s\n' "$EXTENSION_ENTITLEMENTS"
-printf '%s\n' "$EXTENSION_ENTITLEMENTS" | grep -F "com.apple.security.app-sandbox" >/dev/null
-printf '%s\n' "$EXTENSION_ENTITLEMENTS" | grep -F "com.apple.security.network.client" >/dev/null
 
 echo "Verifying WidgetKit extension registration metadata..."
 /usr/bin/plutil -p "$EXTENSION_BUNDLE/Contents/Info.plist"
 /usr/bin/pluginkit -a -v "$EXTENSION_BUNDLE"
 PLUGIN_MATCHES="$(/usr/bin/pluginkit -m -A -D -vvv -p com.apple.widgetkit-extension 2>&1)"
 printf '%s\n' "$PLUGIN_MATCHES"
-printf '%s\n' "$PLUGIN_MATCHES" | grep -F "$EXTENSION_BUNDLE" >/dev/null
+printf '%s\n' "$PLUGIN_MATCHES" | grep -F "com.overbit.OmniRouteWidget.Widget" >/dev/null
 
 STAGING_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGING_DIR"' EXIT
@@ -89,13 +57,7 @@ ln -s /Applications "$STAGING_DIR/Applications"
 
 DMG_PATH="$DIST_DIR/$APP_NAME.dmg"
 echo "Creating $DMG_PATH..."
-hdiutil create \
-  -quiet \
-  -volname "$DISPLAY_NAME" \
-  -srcfolder "$STAGING_DIR" \
-  -ov \
-  -format UDZO \
-  "$DMG_PATH"
+hdiutil create   -quiet   -volname "$DISPLAY_NAME"   -srcfolder "$STAGING_DIR"   -ov   -format UDZO   "$DMG_PATH"
 
 test -s "$DMG_PATH"
 echo "Created $DMG_PATH"

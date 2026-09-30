@@ -17,10 +17,7 @@ targets:
     type: application
     platform: macOS
     sources:
-      - path: Sources/OmniRouteWidget/OmniRouteWidgetApp.swift
-      - path: Sources/OmniRouteWidget/SettingsView.swift
-      - path: Sources/OmniRouteWidget/UsageStore.swift
-      - path: Sources/OmniRouteCore
+      - path: Sources/OmniRouteWidget
     info:
       path: Config/OmniRouteWidget-Info.plist
       properties:
@@ -30,17 +27,10 @@ targets:
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LSApplicationCategoryType: public.app-category.utilities
         NSHighResolutionCapable: true
-        CFBundleURLTypes:
-          - CFBundleURLName: com.overbit.OmniRouteWidget
-            CFBundleURLSchemes:
-              - omniroute-widget
-    entitlements:
-      path: Config/OmniRouteWidget.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.overbit.OmniRouteWidget
         PRODUCT_NAME: OmniRouteWidget
-        CODE_SIGN_ENTITLEMENTS: Config/OmniRouteWidget.entitlements
     dependencies:
       - target: OmniRouteDesktopWidget
         embed: true
@@ -50,7 +40,8 @@ targets:
     platform: macOS
     sources:
       - path: Sources/OmniRouteDesktopWidget
-      - path: Sources/OmniRouteCore
+      - path: Sources/OmniRouteCore/Models.swift
+      - path: Sources/OmniRouteCore/OmniRouteClient.swift
     info:
       path: Config/OmniRouteDesktopWidget-Info.plist
       properties:
