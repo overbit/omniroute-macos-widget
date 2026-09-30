@@ -12,17 +12,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Test
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Test core
         run: swift test
 
-      - name: Build
-        run: swift build --product OmniRouteWidget
-
-      - name: Build DMG
+      - name: Build app and DMG
         env:
           VERSION: 0.0.${{ github.run_number }}
           BUILD_NUMBER: ${{ github.run_number }}
         run: ./scripts/build-dmg.sh
+
+      - name: Verify WidgetKit extension
+        run: test -d dist/OmniRouteWidget.app/Contents/PlugIns/OmniRouteDesktopWidget.appex
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4

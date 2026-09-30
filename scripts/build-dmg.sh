@@ -3,72 +3,49 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="${DIST_DIR:-$ROOT_DIR/dist}"
+DERIVED_DATA_DIR="${DERIVED_DATA_DIR:-$ROOT_DIR/.build/xcode}"
 APP_NAME="OmniRouteWidget"
 DISPLAY_NAME="OmniRoute Widget"
-BUNDLE_ID="${BUNDLE_ID:-com.overbit.OmniRouteWidget}"
 VERSION="${VERSION:-0.0.0}"
-BUILD_NUMBER="${BUILD_NUMBER:-0}"
+BUILD_NUMBER="${BUILD_NUMBER:-1}"
 
-rm -rf "$DIST_DIR"
+if ! command -v xcodegen >/dev/null 2>&1; then
+  echo "error: xcodegen is required (brew install xcodegen)" >&2
+  exit 1
+fi
+
+rm -rf "$DIST_DIR" "$DERIVED_DATA_DIR"
 mkdir -p "$DIST_DIR"
 
-echo "Building $APP_NAME..."
-swift build   --package-path "$ROOT_DIR"   -c release   --product "$APP_NAME"
+echo "Generating Xcode project..."
+(
+  cd "$ROOT_DIR"
+  xcodegen generate
+)
 
-BIN_DIR="$(swift build --package-path "$ROOT_DIR" -c release --show-bin-path)"
+echo "Building $APP_NAME with WidgetKit extension..."
+xcodebuild   -project "$ROOT_DIR/OmniRouteWidget.xcodeproj"   -scheme "$APP_NAME"   -configuration Release   -derivedDataPath "$DERIVED_DATA_DIR"   -destination "platform=macOS"   CODE_SIGNING_ALLOWED=NO   CODE_SIGNING_REQUIRED=NO   MARKETING_VERSION="$VERSION"   CURRENT_PROJECT_VERSION="$BUILD_NUMBER"   build
+
+BUILT_APP="$DERIVED_DATA_DIR/Build/Products/Release/$APP_NAME.app"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
-CONTENTS_DIR="$APP_BUNDLE/Contents"
-MACOS_DIR="$CONTENTS_DIR/MacOS"
 
-mkdir -p "$MACOS_DIR"
-cp "$BIN_DIR/$APP_NAME" "$MACOS_DIR/$APP_NAME"
-chmod +x "$MACOS_DIR/$APP_NAME"
+test -d "$BUILT_APP"
+ditto "$BUILT_APP" "$APP_BUNDLE"
 
-cat > "$CONTENTS_DIR/Info.plist" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
-    <key>CFBundleDisplayName</key>
-    <string>$DISPLAY_NAME</string>
-    <key>CFBundleExecutable</key>
-    <string>$APP_NAME</string>
-    <key>CFBundleIdentifier</key>
-    <string>$BUNDLE_ID</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundleName</key>
-    <string>$APP_NAME</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>$VERSION</string>
-    <key>CFBundleVersion</key>
-    <string>$BUILD_NUMBER</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
-    <key>LSUIElement</key>
-    <true/>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-</dict>
-</plist>
-PLIST
+EXTENSION_BUNDLE="$APP_BUNDLE/Contents/PlugIns/OmniRouteDesktopWidget.appex"
+test -d "$EXTENSION_BUNDLE"
 
-plutil -lint "$CONTENTS_DIR/Info.plist"
+echo "Ad-hoc signing widget extension and app..."
+codesign   --force   --sign -   --timestamp=none   --entitlements "$ROOT_DIR/Config/OmniRouteDesktopWidget.entitlements"   "$EXTENSION_BUNDLE"
 
-# Ad-hoc sign the locally built application bundle so macOS treats the bundle
-# consistently in CI artifacts. Distribution signing/notarization can replace
-# this when signing credentials are configured.
-codesign --force --deep --sign - "$APP_BUNDLE"
+codesign   --force   --deep   --sign -   --timestamp=none   --entitlements "$ROOT_DIR/Config/OmniRouteWidget.entitlements"   "$APP_BUNDLE"
+
 codesign --verify --deep --strict "$APP_BUNDLE"
 
 STAGING_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGING_DIR"' EXIT
 
-cp -R "$APP_BUNDLE" "$STAGING_DIR/$APP_NAME.app"
+ditto "$APP_BUNDLE" "$STAGING_DIR/$APP_NAME.app"
 ln -s /Applications "$STAGING_DIR/Applications"
 
 DMG_PATH="$DIST_DIR/$APP_NAME.dmg"
