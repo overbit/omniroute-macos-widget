@@ -1,4 +1,3 @@
-import OmniRouteCore
 import SwiftUI
 
 struct SettingsView: View {
@@ -13,24 +12,33 @@ struct SettingsView: View {
             Section("Connection") {
                 TextField("OmniRoute URL", text: $baseURL, prompt: Text("http://localhost:20128"))
                     .textFieldStyle(.roundedBorder)
+
                 SecureField("API key", text: $apiKey)
                     .textFieldStyle(.roundedBorder)
+
                 Text("The API key is stored in macOS Keychain. It must have Usage Command enabled in OmniRoute.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             if let saveError {
-                Text(saveError).foregroundStyle(.red).font(.caption)
+                Text(saveError)
+                    .foregroundStyle(.red)
+                    .font(.caption)
             }
 
             HStack {
                 if saveConfirmation {
-                    Label("Saved", systemImage: "checkmark.circle").foregroundStyle(.secondary)
+                    Label("Saved", systemImage: "checkmark.circle")
+                        .foregroundStyle(.secondary)
                 }
+
                 Spacer()
-                Button("Save & Refresh") { save() }
-                    .keyboardShortcut(.defaultAction)
+
+                Button("Save & Refresh") {
+                    save()
+                }
+                .keyboardShortcut(.defaultAction)
             }
         }
         .formStyle(.grouped)
@@ -45,9 +53,10 @@ struct SettingsView: View {
     private func save() {
         saveError = nil
         saveConfirmation = false
+
         do {
-            _ = try OmniRouteClient.normalizedServerURL(baseURL)
             try store.saveConfiguration(baseURL: baseURL, apiKey: apiKey)
+            baseURL = store.baseURL
             saveConfirmation = true
             Task { await store.refresh() }
         } catch {
