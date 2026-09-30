@@ -50,6 +50,7 @@ codesign \
   --sign - \
   --identifier "com.overbit.OmniRouteWidget.Widget" \
   --options runtime \
+  --generate-entitlement-der \
   --timestamp=none \
   --entitlements "$ROOT_DIR/Config/OmniRouteDesktopWidget.entitlements" \
   "$EXTENSION_BUNDLE"
@@ -60,6 +61,7 @@ codesign \
   --sign - \
   --identifier "com.overbit.OmniRouteWidget" \
   --options runtime \
+  --generate-entitlement-der \
   --timestamp=none \
   --entitlements "$ROOT_DIR/Config/OmniRouteWidget.entitlements" \
   "$APP_BUNDLE"
