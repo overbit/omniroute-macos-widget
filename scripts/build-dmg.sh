@@ -48,6 +48,8 @@ echo "Ad-hoc signing nested WidgetKit extension..."
 codesign \
   --force \
   --sign - \
+  --identifier "com.overbit.OmniRouteWidget.Widget" \
+  --options runtime \
   --timestamp=none \
   --entitlements "$ROOT_DIR/Config/OmniRouteDesktopWidget.entitlements" \
   "$EXTENSION_BUNDLE"
@@ -56,6 +58,8 @@ echo "Ad-hoc signing containing app without re-signing nested code..."
 codesign \
   --force \
   --sign - \
+  --identifier "com.overbit.OmniRouteWidget" \
+  --options runtime \
   --timestamp=none \
   --entitlements "$ROOT_DIR/Config/OmniRouteWidget.entitlements" \
   "$APP_BUNDLE"
