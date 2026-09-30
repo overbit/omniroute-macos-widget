@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Test core
+        run: swift test
+
+      - name: Build app and DMG
+        env:
+          VERSION: 0.0.${{ github.run_number }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: ./scripts/build-dmg.sh
+
+      - name: Verify WidgetKit extension
+        run: |
+          test -d dist/OmniRouteWidget.app/Contents/PlugIns/OmniRouteDesktopWidget.appex
+          test "$(/usr/bin/plutil -extract NSExtension.NSExtensionPointIdentifier raw dist/OmniRouteWidget.app/Contents/PlugIns/OmniRouteDesktopWidget.appex/Contents/Info.plist)" = "com.apple.widgetkit-extension"
+
+      - name: Upload development DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OmniRouteWidget-development-dmg
+          path: dist/OmniRouteWidget.dmg
+          if-no-files-found: error
