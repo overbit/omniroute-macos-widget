@@ -42,6 +42,11 @@ codesign   --force   --deep   --sign -   --timestamp=none   --entitlements "$ROO
 
 codesign --verify --deep --strict "$APP_BUNDLE"
 
+echo "Verifying WidgetKit extension registration metadata..."
+WIDGET_BUNDLE_ID="com.overbit.OmniRouteWidget.Widget"
+/usr/bin/pluginkit -a "$EXTENSION_BUNDLE"
+/usr/bin/pluginkit -m -A -D -i "$WIDGET_BUNDLE_ID" | grep -F "$WIDGET_BUNDLE_ID" >/dev/null
+
 STAGING_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGING_DIR"' EXIT
 
