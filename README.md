@@ -107,7 +107,7 @@ The DMG is created at:
 dist/OmniRouteWidget.dmg
 ```
 
-The current build uses ad-hoc signing. Developer ID signing and Apple notarization are not configured.
+Pull-request CI produces an ad-hoc-signed **development** DMG for build validation. For normal end-user distribution, the release workflow requires a Developer ID Application certificate and notarizes the DMG with Apple so the embedded WidgetKit extension can be discovered reliably by macOS.
 
 ## Project structure
 
@@ -129,4 +129,14 @@ Pull-request CI:
 - checks WidgetKit extension registration with `pluginkit`
 - creates and uploads the DMG artifact
 
-Pushes to the repository's default branch create a GitHub Release and attach the DMG.
+Pushes to the repository's default branch create a Developer-ID-signed, notarized GitHub Release and attach the DMG.
+
+Configure these repository Actions secrets before merging to the default branch:
+
+- `DEVELOPER_ID_APPLICATION_P12_BASE64` — base64-encoded Developer ID Application certificate plus private key in PKCS#12 format.
+- `DEVELOPER_ID_APPLICATION_PASSWORD` — password for that PKCS#12 file.
+- `APPLE_ID` — Apple ID used with the notary service.
+- `APPLE_APP_SPECIFIC_PASSWORD` — app-specific password for that Apple ID.
+- `APPLE_TEAM_ID` — Apple Developer Team ID.
+
+The release workflow fails rather than publishing an ad-hoc DMG when those credentials are absent, because an ad-hoc build is only intended for CI/development validation and isn't a reliable direct-distribution format for a macOS app extension.
