@@ -23,8 +23,8 @@ echo "Generating Xcode project..."
   xcodegen generate
 )
 
-echo "Building $APP_NAME with WidgetKit extension..."
-xcodebuild   -project "$ROOT_DIR/OmniRouteWidget.xcodeproj"   -scheme "$APP_NAME"   -configuration Release   -derivedDataPath "$DERIVED_DATA_DIR"   -destination "platform=macOS"   CODE_SIGNING_ALLOWED=NO   CODE_SIGNING_REQUIRED=NO   MARKETING_VERSION="$VERSION"   CURRENT_PROJECT_VERSION="$BUILD_NUMBER"   build
+echo "Building and ad-hoc signing $APP_NAME with WidgetKit extension..."
+xcodebuild   -project "$ROOT_DIR/OmniRouteWidget.xcodeproj"   -scheme "$APP_NAME"   -configuration Release   -derivedDataPath "$DERIVED_DATA_DIR"   -destination "platform=macOS"   CODE_SIGNING_ALLOWED=YES   CODE_SIGNING_REQUIRED=YES   CODE_SIGN_STYLE=Manual   CODE_SIGN_IDENTITY="-"   DEVELOPMENT_TEAM=""   MARKETING_VERSION="$VERSION"   CURRENT_PROJECT_VERSION="$BUILD_NUMBER"   build
 
 BUILT_APP="$DERIVED_DATA_DIR/Build/Products/Release/$APP_NAME.app"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
@@ -34,20 +34,16 @@ test -d "$BUILT_APP"
 ditto "$BUILT_APP" "$APP_BUNDLE"
 test -d "$EXTENSION_BUNDLE"
 
-echo "Ad-hoc signing nested WidgetKit extension..."
-codesign   --force   --sign -   --identifier "com.overbit.OmniRouteWidget.Widget"   --timestamp=none   --entitlements "$ROOT_DIR/Config/OmniRouteDesktopWidget.entitlements"   "$EXTENSION_BUNDLE"
-
-echo "Ad-hoc signing containing app..."
-codesign   --force   --sign -   --identifier "com.overbit.OmniRouteWidget"   --timestamp=none   "$APP_BUNDLE"
-
+echo "Verifying app and extension signatures..."
 codesign --verify --deep --strict "$APP_BUNDLE"
+codesign --verify --strict "$EXTENSION_BUNDLE"
 
 echo "Verifying WidgetKit extension metadata..."
 /usr/bin/plutil -p "$EXTENSION_BUNDLE/Contents/Info.plist"
 /usr/bin/plutil -extract NSExtension.NSExtensionPointIdentifier raw   "$EXTENSION_BUNDLE/Contents/Info.plist"   | grep -Fx "com.apple.widgetkit-extension" >/dev/null
 
 echo "Verifying WidgetKit extension entitlements..."
-EXTENSION_ENTITLEMENTS="$(codesign -d --entitlements :- "$EXTENSION_BUNDLE" 2>&1)"
+EXTENSION_ENTITLEMENTS="$(codesign -d --entitlements - --xml "$EXTENSION_BUNDLE" 2>&1)"
 printf '%s\n' "$EXTENSION_ENTITLEMENTS"
 printf '%s\n' "$EXTENSION_ENTITLEMENTS" | grep -F "com.apple.security.app-sandbox" >/dev/null
 printf '%s\n' "$EXTENSION_ENTITLEMENTS" | grep -F "com.apple.security.network.client" >/dev/null
@@ -56,7 +52,6 @@ echo "Registering containing app with Launch Services..."
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister"
 "$LSREGISTER" -f -R -trusted "$APP_BUNDLE"
 
-/usr/bin/pluginkit -a -v "$APP_BUNDLE" || true
 PLUGIN_MATCHES="$(/usr/bin/pluginkit -m -A -D -vvv 2>&1)"
 printf '%s\n' "$PLUGIN_MATCHES"
 printf '%s\n' "$PLUGIN_MATCHES" | grep -F "com.overbit.OmniRouteWidget.Widget" >/dev/null
