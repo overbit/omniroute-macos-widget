@@ -3,17 +3,18 @@ import PackageDescription
 
 let package = Package(
     name: "OmniRouteWidget",
-    platforms: [
-        .macOS(.v14)
-    ],
+    platforms: [.macOS(.v14)],
     products: [
+        .executable(name: "OmniRouteWidget", targets: ["OmniRouteWidget"]),
         .library(name: "OmniRouteCore", targets: ["OmniRouteCore"])
     ],
     targets: [
         .target(name: "OmniRouteCore"),
-        .testTarget(
-            name: "OmniRouteCoreTests",
-            dependencies: ["OmniRouteCore"]
-        )
+        .executableTarget(
+            name: "OmniRouteWidget",
+            dependencies: ["OmniRouteCore"],
+            linkerSettings: [.linkedFramework("Security")]
+        ),
+        .testTarget(name: "OmniRouteCoreTests", dependencies: ["OmniRouteCore"])
     ]
 )
