@@ -1,6 +1,6 @@
 # OmniRoute macOS Widget
 
-A native macOS WidgetKit desktop widget for [OmniRoute](https://github.com/diegosouzapw/OmniRoute), with a small companion app for connection settings.
+A native macOS WidgetKit desktop widget for [OmniRoute](https://github.com/diegosouzapw/OmniRoute), with a small companion app that explains installation and configuration.
 
 ## What the widget shows
 
@@ -38,17 +38,31 @@ Authorization: Bearer <api-key>
 
 The API key must have **Usage Command** (`allowUsageCommand`) enabled in OmniRoute.
 
-## Configure the widget
+## Install and configure
 
-1. Open **OmniRoute Widget.app**.
-2. Enter the OmniRoute server URL and API key.
-3. Click **Save & Test**.
-4. Open the macOS widget gallery.
-5. Add **OmniRoute** to the desktop or Notification Center.
+1. Copy **OmniRouteWidget.app** from the DMG to **Applications**.
+2. Launch the app once.
+3. Open the macOS widget gallery and add **OmniRoute**.
+4. Right-click the placed widget and choose **Edit Widget**.
+5. Enter the OmniRoute server URL and API key.
 
-The URL and API key are shared with the WidgetKit extension using the app-group/keychain entitlements. The API key is stored in Keychain.
+Configuration is stored by macOS as part of that widget instance. The WidgetKit extension connects directly to OmniRoute, so the distributable build does not require App Group or shared-Keychain entitlements.
 
 An OpenAI-compatible OmniRoute URL ending in `/v1` is accepted and normalized to the server root.
+
+### If OmniRoute does not appear in the widget gallery
+
+Make sure the app is installed in `/Applications` and has been launched at least once. To inspect registration from Terminal:
+
+```bash
+pluginkit -m -A -D -vvv -p com.apple.widgetkit-extension | grep -i OmniRoute
+```
+
+The packaged extension bundle identifier is:
+
+```text
+com.overbit.OmniRouteWidget.Widget
+```
 
 ## Refresh behavior
 
@@ -97,12 +111,12 @@ The current build uses ad-hoc signing. Developer ID signing and Apple notarizati
 
 ## Project structure
 
-- `Sources/OmniRouteCore` — OmniRoute API models, client, and shared configuration/Keychain access.
-- `Sources/OmniRouteWidget` — companion macOS settings app.
-- `Sources/OmniRouteDesktopWidget` — WidgetKit extension and compact desktop UI.
+- `Sources/OmniRouteCore` — OmniRoute API models and client.
+- `Sources/OmniRouteWidget` — companion macOS installation/configuration guide.
+- `Sources/OmniRouteDesktopWidget` — WidgetKit extension, configuration intent, and compact desktop UI.
 - `Tests/OmniRouteCoreTests` — URL normalization and usage-contract tests.
 - `project.yml` — XcodeGen project definition.
-- `scripts/build-dmg.sh` — builds the app, embeds/signs the WidgetKit extension, and creates the DMG.
+- `scripts/build-dmg.sh` — builds the app, embeds/signs the WidgetKit extension, verifies registration metadata, and creates the DMG.
 
 ## CI and releases
 
@@ -112,6 +126,7 @@ Pull-request CI:
 - generates the Xcode project
 - builds the app with the WidgetKit extension
 - verifies that `OmniRouteDesktopWidget.appex` is embedded
+- checks WidgetKit extension registration with `pluginkit`
 - creates and uploads the DMG artifact
 
 Pushes to the repository's default branch create a GitHub Release and attach the DMG.
