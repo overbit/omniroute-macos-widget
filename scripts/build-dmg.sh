@@ -63,7 +63,7 @@ codesign \
 codesign --verify --deep --strict "$APP_BUNDLE"
 
 echo "Verifying widget entitlements survived packaging..."
-EXTENSION_ENTITLEMENTS="$(codesign -d --entitlements :- "$EXTENSION_BUNDLE" 2>&1)"
+EXTENSION_ENTITLEMENTS="$(codesign --display --entitlements - --xml "$EXTENSION_BUNDLE" 2>&1)"
 printf '%s\n' "$EXTENSION_ENTITLEMENTS"
 printf '%s\n' "$EXTENSION_ENTITLEMENTS" | grep -F "com.apple.security.app-sandbox" >/dev/null
 printf '%s\n' "$EXTENSION_ENTITLEMENTS" | grep -F "com.apple.security.network.client" >/dev/null
