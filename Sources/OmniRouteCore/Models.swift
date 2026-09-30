@@ -1,11 +1,25 @@
 import Foundation
 
-public struct UsageResponse: Decodable, Sendable {
+public struct UsageResponse: Codable, Sendable {
     public let allowed: Bool
     public let personal: PersonalUsage?
     public let provider: ProviderUsage?
     public let providers: [ProviderUsage]?
     public let error: APIErrorPayload?
+
+    public init(
+        allowed: Bool,
+        personal: PersonalUsage? = nil,
+        provider: ProviderUsage? = nil,
+        providers: [ProviderUsage]? = nil,
+        error: APIErrorPayload? = nil
+    ) {
+        self.allowed = allowed
+        self.personal = personal
+        self.provider = provider
+        self.providers = providers
+        self.error = error
+    }
 
     public var allProviders: [ProviderUsage] {
         if let providers, !providers.isEmpty {
@@ -15,11 +29,15 @@ public struct UsageResponse: Decodable, Sendable {
     }
 }
 
-public struct APIErrorPayload: Decodable, Sendable {
+public struct APIErrorPayload: Codable, Sendable {
     public let message: String?
+
+    public init(message: String? = nil) {
+        self.message = message
+    }
 }
 
-public struct PersonalUsage: Decodable, Sendable {
+public struct PersonalUsage: Codable, Sendable {
     public let enabled: Bool?
     public let dailyLimitUsd: Double?
     public let weeklyLimitUsd: Double?
@@ -31,6 +49,32 @@ public struct PersonalUsage: Decodable, Sendable {
     public let weeklyResetAtIso: String?
     public let dailyExceeded: Bool?
     public let weeklyExceeded: Bool?
+
+    public init(
+        enabled: Bool? = nil,
+        dailyLimitUsd: Double? = nil,
+        weeklyLimitUsd: Double? = nil,
+        dailySpentUsd: Double? = nil,
+        weeklySpentUsd: Double? = nil,
+        dailyWindowStartIso: String? = nil,
+        dailyResetAtIso: String? = nil,
+        weeklyWindowStartIso: String? = nil,
+        weeklyResetAtIso: String? = nil,
+        dailyExceeded: Bool? = nil,
+        weeklyExceeded: Bool? = nil
+    ) {
+        self.enabled = enabled
+        self.dailyLimitUsd = dailyLimitUsd
+        self.weeklyLimitUsd = weeklyLimitUsd
+        self.dailySpentUsd = dailySpentUsd
+        self.weeklySpentUsd = weeklySpentUsd
+        self.dailyWindowStartIso = dailyWindowStartIso
+        self.dailyResetAtIso = dailyResetAtIso
+        self.weeklyWindowStartIso = weeklyWindowStartIso
+        self.weeklyResetAtIso = weeklyResetAtIso
+        self.dailyExceeded = dailyExceeded
+        self.weeklyExceeded = weeklyExceeded
+    }
 
     public var dailyUsedFraction: Double? {
         fraction(spent: dailySpentUsd, limit: dailyLimitUsd)
@@ -46,13 +90,25 @@ public struct PersonalUsage: Decodable, Sendable {
     }
 }
 
-public struct ProviderUsage: Decodable, Sendable, Identifiable {
+public struct ProviderUsage: Codable, Sendable, Identifiable {
     public let connectionId: String
     public let provider: String
     public let plan: String?
     public let quotas: [String: ProviderQuota]
 
     public var id: String { connectionId }
+
+    public init(
+        connectionId: String,
+        provider: String,
+        plan: String? = nil,
+        quotas: [String: ProviderQuota] = [:]
+    ) {
+        self.connectionId = connectionId
+        self.provider = provider
+        self.plan = plan
+        self.quotas = quotas
+    }
 
     enum CodingKeys: String, CodingKey {
         case connectionId
@@ -75,15 +131,39 @@ public struct ProviderUsage: Decodable, Sendable, Identifiable {
             plan = nil
         }
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(connectionId, forKey: .connectionId)
+        try container.encode(provider, forKey: .provider)
+        try container.encodeIfPresent(plan, forKey: .plan)
+        try container.encode(quotas, forKey: .quotas)
+    }
 }
 
-public struct ProviderQuota: Decodable, Sendable {
+public struct ProviderQuota: Codable, Sendable {
     public let used: Double?
     public let total: Double?
     public let remaining: Double?
     public let usedPercentage: Double?
     public let remainingPercentage: Double?
     public let resetAt: String?
+
+    public init(
+        used: Double? = nil,
+        total: Double? = nil,
+        remaining: Double? = nil,
+        usedPercentage: Double? = nil,
+        remainingPercentage: Double? = nil,
+        resetAt: String? = nil
+    ) {
+        self.used = used
+        self.total = total
+        self.remaining = remaining
+        self.usedPercentage = usedPercentage
+        self.remainingPercentage = remainingPercentage
+        self.resetAt = resetAt
+    }
 
     public var remainingPercent: Double? {
         if let remainingPercentage {

@@ -1,6 +1,6 @@
 import Foundation
-import OmniRouteCore
 import SwiftUI
+import WidgetKit
 
 @MainActor
 final class UsageStore: ObservableObject {
@@ -10,13 +10,11 @@ final class UsageStore: ObservableObject {
     @Published var lastUpdated: Date?
     @Published private(set) var baseURL: String
 
-    private let defaults: UserDefaults
     private var apiKey: String
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        self.baseURL = defaults.string(forKey: "omnirouteBaseURL") ?? "http://localhost:20128"
-        self.apiKey = KeychainStore.loadAPIKey()
+    init() {
+        self.baseURL = OmniRouteSharedConfiguration.loadBaseURL()
+        self.apiKey = OmniRouteSharedConfiguration.loadAPIKey()
     }
 
     var isConfigured: Bool {
@@ -35,11 +33,12 @@ final class UsageStore: ObservableObject {
             throw OmniRouteClientError.missingAPIKey
         }
 
-        try KeychainStore.saveAPIKey(trimmedKey)
-        defaults.set(normalizedURL, forKey: "omnirouteBaseURL")
+        try OmniRouteSharedConfiguration.saveAPIKey(trimmedKey)
+        OmniRouteSharedConfiguration.saveBaseURL(normalizedURL)
 
         self.baseURL = normalizedURL
         self.apiKey = trimmedKey
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     func refresh() async {
@@ -57,6 +56,7 @@ final class UsageStore: ObservableObject {
             let client = try OmniRouteClient(baseURL: baseURL, apiKey: apiKey)
             usage = try await client.fetchUsage()
             lastUpdated = Date()
+            WidgetCenter.shared.reloadAllTimelines()
         } catch {
             errorMessage = error.localizedDescription
         }

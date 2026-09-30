@@ -1,0 +1,74 @@
+name: OmniRouteWidget
+
+options:
+  bundleIdPrefix: com.overbit
+  deploymentTarget:
+    macOS: "14.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+
+targets:
+  OmniRouteWidget:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/OmniRouteWidget/OmniRouteWidgetApp.swift
+      - path: Sources/OmniRouteWidget/SettingsView.swift
+      - path: Sources/OmniRouteWidget/UsageStore.swift
+      - path: Sources/OmniRouteCore
+    info:
+      path: Config/OmniRouteWidget-Info.plist
+      properties:
+        CFBundleDisplayName: OmniRoute Widget
+        CFBundleName: OmniRouteWidget
+        LSApplicationCategoryType: public.app-category.utilities
+        NSHighResolutionCapable: true
+        CFBundleURLTypes:
+          - CFBundleURLName: com.overbit.OmniRouteWidget
+            CFBundleURLSchemes:
+              - omniroute-widget
+    entitlements:
+      path: Config/OmniRouteWidget.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.overbit.OmniRouteWidget
+        PRODUCT_NAME: OmniRouteWidget
+        CODE_SIGN_ENTITLEMENTS: Config/OmniRouteWidget.entitlements
+    dependencies:
+      - target: OmniRouteDesktopWidget
+        embed: true
+
+  OmniRouteDesktopWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Sources/OmniRouteDesktopWidget
+      - path: Sources/OmniRouteCore
+    info:
+      path: Config/OmniRouteDesktopWidget-Info.plist
+      properties:
+        CFBundleDisplayName: OmniRoute
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Config/OmniRouteDesktopWidget.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.overbit.OmniRouteWidget.Widget
+        PRODUCT_NAME: OmniRouteDesktopWidget
+        APPLICATION_EXTENSION_API_ONLY: YES
+        CODE_SIGN_ENTITLEMENTS: Config/OmniRouteDesktopWidget.entitlements
+
+schemes:
+  OmniRouteWidget:
+    build:
+      targets:
+        OmniRouteWidget: all
+        OmniRouteDesktopWidget: all
+    run:
+      config: Debug
+    archive:
+      config: Release
