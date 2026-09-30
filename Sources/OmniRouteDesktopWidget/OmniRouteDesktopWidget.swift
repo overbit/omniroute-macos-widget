@@ -1,8 +1,9 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
-struct UsageEntry: TimelineEntry {
-    enum State {
+struct UsageEntry: TimelineEntry, Sendable {
+    enum State: Sendable {
         case configured(UsageResponse)
         case notConfigured
         case failed(String)
@@ -12,29 +13,36 @@ struct UsageEntry: TimelineEntry {
     let state: State
 }
 
-struct UsageTimelineProvider: TimelineProvider {
+struct OmniRouteConfigurationIntent: WidgetConfigurationIntent {
+    static let title: LocalizedStringResource = "OmniRoute"
+    static let description = IntentDescription("Display OmniRoute usage and provider quotas.")
+}
+
+struct UsageTimelineProvider: AppIntentTimelineProvider {
+    typealias Intent = OmniRouteConfigurationIntent
+
     func placeholder(in context: Context) -> UsageEntry {
         UsageEntry(date: .now, state: .configured(Self.sampleUsage))
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (UsageEntry) -> Void) {
+    func snapshot(
+        for configuration: OmniRouteConfigurationIntent,
+        in context: Context
+    ) async -> UsageEntry {
         if context.isPreview {
-            completion(placeholder(in: context))
-            return
+            return placeholder(in: context)
         }
-
-        Task {
-            completion(await loadEntry())
-        }
+        return await loadEntry()
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<UsageEntry>) -> Void) {
-        Task {
-            let entry = await loadEntry()
-            let refresh = Calendar.current.date(byAdding: .minute, value: 15, to: .now)
-                ?? .now.addingTimeInterval(15 * 60)
-            completion(Timeline(entries: [entry], policy: .after(refresh)))
-        }
+    func timeline(
+        for configuration: OmniRouteConfigurationIntent,
+        in context: Context
+    ) async -> Timeline<UsageEntry> {
+        let entry = await loadEntry()
+        let refresh = Calendar.current.date(byAdding: .minute, value: 15, to: .now)
+            ?? .now.addingTimeInterval(15 * 60)
+        return Timeline(entries: [entry], policy: .after(refresh))
     }
 
     private func loadEntry() async -> UsageEntry {
@@ -98,7 +106,11 @@ struct OmniRouteDesktopWidget: Widget {
     static let kind = "OmniRouteDesktopWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: Self.kind, provider: UsageTimelineProvider()) { entry in
+        AppIntentConfiguration(
+            kind: Self.kind,
+            intent: OmniRouteConfigurationIntent.self,
+            provider: UsageTimelineProvider()
+        ) { entry in
             OmniRouteWidgetView(entry: entry)
                 .containerBackground(.background, for: .widget)
                 .widgetURL(URL(string: "omniroute-widget://settings"))
