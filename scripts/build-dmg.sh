@@ -44,8 +44,12 @@ codesign --verify --deep --strict "$APP_BUNDLE"
 
 echo "Verifying WidgetKit extension registration metadata..."
 WIDGET_BUNDLE_ID="com.overbit.OmniRouteWidget.Widget"
-/usr/bin/pluginkit -a "$EXTENSION_BUNDLE"
-/usr/bin/pluginkit -m -A -D -i "$WIDGET_BUNDLE_ID" | grep -F "$WIDGET_BUNDLE_ID" >/dev/null
+/usr/bin/plutil -p "$EXTENSION_BUNDLE/Contents/Info.plist"
+/usr/bin/codesign -d --entitlements :- "$EXTENSION_BUNDLE" 2>&1
+/usr/bin/pluginkit -a -v "$EXTENSION_BUNDLE"
+PLUGIN_MATCHES="$(/usr/bin/pluginkit -m -A -D -vvv -p com.apple.widgetkit-extension 2>&1)"
+printf '%s\n' "$PLUGIN_MATCHES"
+printf '%s\n' "$PLUGIN_MATCHES" | grep -F "$EXTENSION_BUNDLE" >/dev/null
 
 STAGING_DIR="$(mktemp -d)"
 trap 'rm -rf "$STAGING_DIR"' EXIT
