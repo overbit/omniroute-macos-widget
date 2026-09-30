@@ -10,9 +10,5 @@
     <array>
         <string>group.com.overbit.OmniRouteWidget</string>
     </array>
-    <key>keychain-access-groups</key>
-    <array>
-        <string>com.overbit.OmniRouteWidget.shared</string>
-    </array>
 </dict>
 </plist>

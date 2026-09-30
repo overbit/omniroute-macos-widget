@@ -5,7 +5,7 @@ public enum OmniRouteSharedConfiguration {
     public static let appGroup = "group.com.overbit.OmniRouteWidget"
     public static let keychainService = "com.overbit.OmniRouteWidget"
     public static let keychainAccount = "omniroute-api-key"
-    public static let keychainAccessGroup = "com.overbit.OmniRouteWidget.shared"
+    public static let keychainAccessGroup = appGroup
     public static let defaultBaseURL = "http://localhost:20128"
 
     private static var defaults: UserDefaults {
